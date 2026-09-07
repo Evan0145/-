@@ -8,7 +8,6 @@ from datetime import datetime
 import os
 import numpy as np
 
-# --- 0. 資料庫初始化 ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(BASE_DIR, "furniture_logic.db")
 
@@ -24,7 +23,6 @@ def init_db():
 
 init_db()
 
-# --- 1. AI 預測核心引擎 ---
 def ai_logic_prediction(cab_type, current_w, current_h, current_thick):
     """從資料庫學習偏移量規律並預測零件尺寸"""
     try:
@@ -57,7 +55,6 @@ def ai_logic_prediction(cab_type, current_w, current_h, current_thick):
                         counts.append(p['數量'])
                         edges.append(p['封邊'])
             
-            # 使用中位數預測，減少誤差
             pred_w = current_w - np.median(offsets_w)
             pred_h = current_h - np.median(offsets_h)
             
@@ -72,7 +69,6 @@ def ai_logic_prediction(cab_type, current_w, current_h, current_thick):
     except:
         return None
 
-# --- 2. 原始手動公式 (備案) ---
 def manual_decompose(cab_type, total_w, total_h, thick):
     if cab_type == "客廳櫃":
         return [{"名稱": "客廳-側板", "寬W": total_h, "高H": 400.0, "數量": 2, "封邊": "長邊x2"},
@@ -82,7 +78,6 @@ def manual_decompose(cab_type, total_w, total_h, thick):
                 {"名稱": "衣櫃-頂底板", "寬W": total_w - (thick * 2), "高H": 600.0, "數量": 2, "封邊": "長邊x1"}]
     return []
 
-# --- 3. 核心繪圖函式 ---
 def draw_sheet(bin_data, sw, sh, active_color, scale=0.3):
     margin = 50
     img = Image.new('RGB', (int(sw*scale)+margin*2, int(sh*scale)+margin*2), "#FFFFFF")
@@ -99,18 +94,13 @@ def draw_sheet(bin_data, sw, sh, active_color, scale=0.3):
             draw.line([(x1+s*dx, y1+s*dy), (x1+e*dx, y1+e*dy)], fill="#FF3D00", width=5) # 橘色加粗虛線
 
     for r in bin_data['rects']:
-        # 計算零件在畫布上的座標
         x1, y1 = margin + r['x']*scale, margin + r['y']*scale
         x2, y2 = margin + (r['x']+r['w'])*scale, margin + (r['y']+r['h'])*scale
         
-        # 畫底板
         draw.rectangle([x1, y1, x2, y2], fill=active_color, outline="black", width=2)
         
-        # --- 精確封邊判斷 ---
-        edge = str(r['edge']) # 取得該零件的封邊選項文字
+        edge = str(r['edge']) 
         
-        # 1. 判斷長邊 (橫向或縱向中較長的那一邊)
-        # 這裡根據排版後的 w, h 自動判斷哪條是長邊
         is_landscape = (x2 - x1) >= (y2 - y1)
         
         if "全封" in edge:
@@ -123,7 +113,6 @@ def draw_sheet(bin_data, sw, sh, active_color, scale=0.3):
                 if "短邊x1" in edge: draw_dashed_line((x1, y1, x1, y2))
                 if "短邊x2" in edge: draw_dashed_line((x1, y1, x1, y2)); draw_dashed_line((x2, y1, x2, y2))
             else:
-                # 如果零件被旋轉了，長短邊定義互換
                 if "長邊x1" in edge: draw_dashed_line((x1, y1, x1, y2))
                 if "長邊x2" in edge: draw_dashed_line((x1, y1, x1, y2)); draw_dashed_line((x2, y1, x2, y2))
                 if "短邊x1" in edge: draw_dashed_line((x1, y1, x2, y1))
@@ -134,8 +123,7 @@ def draw_sheet(bin_data, sw, sh, active_color, scale=0.3):
             draw.text((x1+5, y1+5), f"{r['name']}\n{int(r['w'])}x{int(r['h'])}", fill="black")
             
     return img
-
-# --- 4. 側邊欄與設定 ---
+    
 st.set_page_config(page_title="AI 家具智慧生產系統", layout="wide")
 with st.sidebar:
     st.header("🧱 材料設定")
@@ -154,7 +142,6 @@ with st.sidebar:
 skin_colors = {"白橡木": "#D2B48C", "胡桃木": "#5D4037", "純白": "#F5F5F5", "灰色": "#9E9E9E", "黑木紋": "#212121"}
 active_color = skin_colors[wood_skin]
 
-# --- 5. 主頁面：智慧拆料 ---
 if 'all_parts' not in st.session_state: st.session_state.all_parts = []
 
 col_input, col_preview = st.columns([1, 1.2])
@@ -231,8 +218,7 @@ with col_preview:
                 st.image(draw_sheet(bin_data, sw, sh, active_color), use_container_width=True)
     else:
         st.info("💡 尚未有零件，請點擊拆料按鈕或手動輸入尺寸。")
-
-# --- 6. 管理面板 ---
+        
 st.divider()
 st.subheader("🛠️ 資料庫數據管理面板")
 try:
